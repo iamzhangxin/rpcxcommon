@@ -11,7 +11,7 @@ type Error struct {
 // New 创建具有六位数字编码的错误，扩展编码由使用方统一分配。
 func New(code int32, message string) *Error {
 	if code < 100000 || code > 999999 {
-		panic("error code must contain six digits")
+		panic("错误编码必须是六位数字")
 	}
 	return &Error{code: code, message: message}
 }

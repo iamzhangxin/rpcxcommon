@@ -88,14 +88,14 @@ func TestToRpc(t *testing.T) {
 		code    int32
 		message string
 	}{
-		{"argument", ErrInvalidArgument, 400001, "invalid argument"},
-		{"identity", ErrIdentityRequired, 401001, "user identity is required"},
-		{"wrapped", fmt.Errorf("wrapped: %w", ErrNotFound), 404001, "resource not found"},
-		{"conflict", ErrConflict, 409001, "resource conflict"},
-		{"internal", ErrReadFailed.WithCause(stderrors.New("private sql detail")), 500001, "internal error"},
-		{"unknown", stderrors.New("private unknown detail"), 500001, "internal error"},
+		{"argument", ErrInvalidArgument, 400001, "参数无效"},
+		{"identity", ErrIdentityRequired, 401003, "用户身份不能为空"},
+		{"wrapped", fmt.Errorf("wrapped: %w", ErrNotFound), 404001, "资源不存在"},
+		{"conflict", ErrConflict, 409001, "资源冲突"},
+		{"internal", ErrReadFailed.WithCause(stderrors.New("private sql detail")), 500001, "内部错误"},
+		{"unknown", stderrors.New("private unknown detail"), 500001, "内部错误"},
 		{"downstream", kerrors.NewBizStatusError(404002, "downstream item missing"), 404002, "downstream item missing"},
-		{"legacy-code", kerrors.NewBizStatusError(40101, "legacy detail"), 500001, "internal error"},
+		{"legacy-code", kerrors.NewBizStatusError(40101, "legacy detail"), 500001, "内部错误"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			err := ToRpc(context.Background(), test.err)

@@ -21,11 +21,11 @@ func ToRpc(ctx context.Context, err error) error {
 		if defined.Code() < 500000 {
 			return kerrors.NewBizStatusError(defined.Code(), defined.Message())
 		}
-		klog.CtxErrorf(ctx, "request failed: %v", defined)
+		klog.CtxErrorf(ctx, "请求失败: %v", defined)
 	} else if biz, ok := kerrors.FromBizStatusError(err); ok && biz.BizStatusCode() >= 100000 && biz.BizStatusCode() <= 999999 {
 		return biz
 	} else {
-		klog.CtxErrorf(ctx, "request failed with unclassified error type %T", err)
+		klog.CtxErrorf(ctx, "请求失败，未分类的错误类型 %T", err)
 	}
 	return kerrors.NewBizStatusError(ErrInternal.Code(), ErrInternal.Message())
 }

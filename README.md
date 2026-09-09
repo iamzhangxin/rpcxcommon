@@ -11,7 +11,30 @@ import (
 
 ## 上下文
 
-`rpcmeta.WithUserId(ctx, id)` 将 `x-user-id` 写入 persistent metainfo；`rpcmeta.UserId(ctx)` 读取身份并去除首尾空白。空身份会清除当前上下文的身份，原上下文不变。调用后续服务时继续传递当前 Context。
+`rpcmeta.RequestInfo` 统一表达用户、应用与设备请求上下文：
+
+| 字段 | HTTP Header | 单字段读取 |
+| --- | --- | --- |
+| UserId | x-user-id | rpcmeta.UserId(ctx) |
+| AppCode | x-app-code | rpcmeta.AppCode(ctx) |
+| DeviceId | x-device-id | rpcmeta.DeviceId(ctx) |
+| DeviceType | x-device-type | rpcmeta.DeviceType(ctx) |
+| DeviceName | x-device-name | rpcmeta.DeviceName(ctx) |
+
+```go
+info := rpcmeta.FromHTTPHeader(request.Header)
+ctx := rpcmeta.WithRequestInfo(request.Context(), info)
+// 在下游读取完整请求信息：
+info = rpcmeta.FromContext(ctx)
+// 需要用户身份的接口可使用：
+if info.UserId == "" {
+    return nil, errors.ToRpc(ctx, errors.ErrIdentityRequired)
+}
+```
+
+所有字段均去除首尾空白并写入 persistent metainfo。整体写入会清除未提供的字段，防止旧上下文信息残留；缺失、空白或重复 HTTP 头作为空值处理。只有用户身份在需要登录的接口上要求非空，设备字段不默认必填。
+
+保留 `WithUserId` / `UserId`，并提供 `WithAppCode`、`WithDeviceId`、`WithDeviceType`、`WithDeviceName` 进行单字段更新。调用后续服务时继续传递当前 Context。
 
 入口负责身份校验；本包只传递身份，不验证 Token。Kitex 客户端需同时启用 TTHeader 和 `transmeta.ClientTTHeaderHandler`，服务端需启用 `transmeta.ServerTTHeaderHandler`，才能通过网络持续透传。
 
@@ -22,7 +45,7 @@ import (
 | 定义 | 六位编码 | 含义 |
 | --- | --- | --- |
 | ErrInvalidArgument | 400001 | 参数无效 |
-| ErrIdentityRequired | 401001 | 缺少身份 |
+| ErrIdentityRequired | 401003 | 用户身份不能为空 |
 | ErrPermissionDenied | 403001 | 权限不足 |
 | ErrNotFound | 404001 | 资源不存在 |
 | ErrConflict | 409001 | 资源冲突 |
