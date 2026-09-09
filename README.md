@@ -32,7 +32,7 @@ if info.UserId == "" {
 }
 ```
 
-所有字段均去除首尾空白并写入 persistent metainfo。整体写入会清除未提供的字段，防止旧上下文信息残留；缺失、空白或重复 HTTP 头作为空值处理。只有用户身份在需要登录的接口上要求非空，设备字段不默认必填。
+五个字段都原样写入 persistent metainfo，不校验有效性、不去除空白。未提供的头以空字符串写入，覆盖原有值，避免残留。只在接口声明 `xuandu.Auth = "required"` 时由网关检查 UserId 是否为空；本包不执行登录检查。
 
 保留 `WithUserId` / `UserId`，并提供 `WithAppCode`、`WithDeviceId`、`WithDeviceType`、`WithDeviceName` 进行单字段更新。调用后续服务时继续传递当前 Context。
 

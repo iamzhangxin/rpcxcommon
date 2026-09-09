@@ -26,7 +26,7 @@ type RequestInfo struct {
 	DeviceName string
 }
 
-// WithRequestInfo 整体替换请求上下文，空字段清除旧值，原上下文不变。
+// WithRequestInfo 整体写入五个请求字段，空值也写入，原上下文不变。
 func WithRequestInfo(ctx context.Context, info RequestInfo) context.Context {
 	ctx = WithUserId(ctx, info.UserId)
 	ctx = WithAppCode(ctx, info.AppCode)
@@ -40,37 +40,30 @@ func FromContext(ctx context.Context) RequestInfo {
 	return RequestInfo{UserId: UserId(ctx), AppCode: AppCode(ctx), DeviceId: DeviceId(ctx), DeviceType: DeviceType(ctx), DeviceName: DeviceName(ctx)}
 }
 
-// FromHTTPHeader 仅提取约定的五个请求头，缺失、空白或重复字段作为空值处理。
+// FromHTTPHeader 提取约定的五个请求头，不验证或修改内容，缺失时使用空字符串。
 func FromHTTPHeader(header http.Header) RequestInfo {
 	return RequestInfo{UserId: headerValue(header, UserIdKey), AppCode: headerValue(header, AppCodeKey), DeviceId: headerValue(header, DeviceIdKey), DeviceType: headerValue(header, DeviceTypeKey), DeviceName: headerValue(header, DeviceNameKey)}
 }
 
-// headerValue 忽略头名大小写，避免多个值或不同大小写键造成身份歧义。
+// headerValue 按头名读取首个值，不检查内容，未提供时返回空字符串。
 func headerValue(header http.Header, key string) string {
-	count, value := 0, ""
 	for name, values := range header {
-		if strings.EqualFold(name, key) {
-			count += len(values)
-			if len(values) == 1 {
-				value = values[0]
-			}
+		if strings.EqualFold(name, key) && len(values) > 0 {
+			return values[0]
 		}
 	}
-	if count != 1 {
-		return ""
-	}
-	return strings.TrimSpace(value)
+	return ""
 }
 
-// value 读取并归一化持久请求元信息。
+// value 读取持久请求元信息，不修改原始值。
 func value(ctx context.Context, key string) string {
 	v, _ := metainfo.GetPersistentValue(ctx, key)
-	return strings.TrimSpace(v)
+	return v
 }
 
-// withValue 写入持久请求元信息，空值清除当前上下文中的对应字段。
+// withValue 原样写入持久请求元信息，包括空字符串。
 func withValue(ctx context.Context, key, v string) context.Context {
-	v = strings.TrimSpace(v)
+	// metainfo 忽略空值写入，需先清除旧值，使下游读取为空。
 	if v == "" {
 		return metainfo.DelPersistentValue(ctx, key)
 	}
